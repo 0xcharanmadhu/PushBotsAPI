@@ -100,8 +100,8 @@ stream.on(CONSTANTS.STREAM.CHAT, async (message) => {
                 await pushBotInitializer.chat.accept(senderAddress);
             }
             if (isWhitelisted) {
-                if (message.message.content.startsWith("/pushbot")) {
-                    const request = message.message.content.replace("/pushbot", "");
+                if (message.message.content.startsWith("/bot")) {
+                    const request = message.message.content.replace("/bot", "");
                     const response = await groqResponseMessage(request, message.chatId);
                     sendResponseMessage(response.response, message.chatId);
                 }
