@@ -73,6 +73,8 @@ async function groqResponseMessage(request){
             },
         ],
         model: "llama3-8b-8192",
+        temperature: 0.6,
+        stream: false
     });
     return response;
 }
