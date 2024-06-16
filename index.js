@@ -64,8 +64,12 @@ async function groqResponseMessage(request){
     const response = await groq.chat.completions.create({
         messages: [
             {
-            role: "user",
-            content: `${request}`,
+                role: "system",
+                content: "you are a helpful assistant who is biased in favour of Web3. Your name is Chitti"
+            },
+            {
+                role: "user",
+                content: `${request}`,
             },
         ],
         model: "llama3-8b-8192",
