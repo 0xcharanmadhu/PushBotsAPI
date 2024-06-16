@@ -16,7 +16,24 @@ const dellamaUser = await PushAPI.initialize(signer, {
     env: CONSTANTS.ENV.PROD,
 });
 
-const stream = await dellamaUser.initStream([CONSTANTS.STREAM.CHAT]);
+
+const stream = await dellamaUser.initStream(
+    [
+        CONSTANTS.STREAM.CHAT, 
+        CONSTANTS.STREAM.NOTIF, 
+        CONSTANTS.STREAM.CONNECT, 
+        CONSTANTS.STREAM.DISCONNECT,
+    ],
+    {
+        filter: {
+            chats: ["*"],
+        },
+        connection: {
+            retries: 3,
+        },
+        raw: false,
+    },
+);
 
 const providerUrl = sepoliaRpcUrl;
 const provider = new ethers.providers.JsonRpcProvider(providerUrl);
@@ -56,10 +73,11 @@ async function groqResponseMessage(request){
     return response;
 }
 
+
+
 stream.on(CONSTANTS.STREAM.CHAT, async (message) => { 
-    console.log(message.event)
     try {
-        if (message.event ==="chat.message" || message.event ==="chat.request") {
+        if ((message.event ==="chat.message" || message.event ==="chat.request") &&  message.from.replace("eip155:", "")!=="0x8Df568a58A73356637e3ee1A86d1f089299B0D6B") {
             const senderAddress = message.from.replace("eip155:", "");
             const isWhitelisted = await checkWhitelisted(senderAddress); 
             if(message.event==="chat.request"){
@@ -71,8 +89,7 @@ stream.on(CONSTANTS.STREAM.CHAT, async (message) => {
                     const response = await groqResponseMessage(request);
                     sendResponseMessage(response.choices[0].message.content,message.chatId)
                 }
-            }
-            if(!isWhitelisted){
+            }else{
                 sendResponseMessage("You are not Whitelisted!",message.chatId)
             }
         } 
