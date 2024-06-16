@@ -13,6 +13,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
     "@pushprotocol/restapi": "^1.7.24",
     "@pushprotocol/socket": "^0.5.3",
     "dotenv": "^16.4.5",
