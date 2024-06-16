@@ -12,12 +12,12 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const signer = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY);
 
-const dellamaUser = await PushAPI.initialize(signer, {
+const chittiPushInitializer = await PushAPI.initialize(signer, {
     env: CONSTANTS.ENV.PROD,
 });
 
 
-const stream = await dellamaUser.initStream(
+const stream = await chittiPushInitializer.initStream(
     [
         CONSTANTS.STREAM.CHAT, 
         CONSTANTS.STREAM.NOTIF, 
@@ -49,7 +49,7 @@ async function checkWhitelisted(senderAddress) {
 
 async function sendResponseMessage(message,recipient){
     try{
-        await dellamaUser.chat.send(recipient, {
+        await chittiPushInitializer.chat.send(recipient, {
             type: 'Text',
             content: message,
         });
@@ -87,11 +87,11 @@ stream.on(CONSTANTS.STREAM.CHAT, async (message) => {
             const senderAddress = message.from.replace("eip155:", "");
             const isWhitelisted = await checkWhitelisted(senderAddress); 
             if(message.event==="chat.request"){
-                await dellamaUser.chat.accept(senderAddress);
+                await chittiPushInitializer.chat.accept(senderAddress);
             }
             if(isWhitelisted){
-                if(message.message.content.startsWith("/llama")){
-                    const request = message.message.content.replace("/llama", "");
+                if(message.message.content.startsWith("/chitti")){
+                    const request = message.message.content.replace("/chitti", "");
                     const response = await groqResponseMessage(request);
                     sendResponseMessage(response.choices[0].message.content,message.chatId)
                 }
