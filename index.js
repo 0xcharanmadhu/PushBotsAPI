@@ -93,7 +93,7 @@ async function groqResponseMessage(request, chatId) {
 
 stream.on(CONSTANTS.STREAM.CHAT, async (message) => {
     try {
-        if (message.origin === "other" && (message.event === "chat.message" || message.event === "chat.request")) {
+        if (message.origin === "other" && (message.event === "chat.message" || message.event === "chat.request") && message.message.content) {
             const senderAddress = message.from.replace("eip155:", "");
             const isWhitelisted = await checkWhitelisted(senderAddress); 
             if (message.event === "chat.request") {
