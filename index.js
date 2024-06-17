@@ -8,6 +8,7 @@ import abi from "./contracts/whitelist/abi/abi.json" assert { type: "json" };
 import { BufferMemory } from "langchain/memory";
 import { ChatGroq } from "@langchain/groq";
 import { ConversationChain } from "langchain/chains";
+import { UpstashRedisChatMessageHistory } from "@langchain/community/stores/message/upstash_redis";
 
 dotenv.config();
 
@@ -61,22 +62,21 @@ async function sendResponseMessage(message, recipient) {
     }
 }
 
-const memoryMap = new Map();
-
 const model = new ChatGroq({
     model: "llama3-8b-8192",
     temperature: 0,
 });
 
-function getMemoryForChatId(chatId) {
-    if (!memoryMap.has(chatId)) {
-        memoryMap.set(chatId, new BufferMemory());
-    }
-    return memoryMap.get(chatId);
-}
-
 function getConversationChainForChatId(chatId) {
-    const memory = getMemoryForChatId(chatId);
+    const memory = new BufferMemory({
+        chatHistory: new UpstashRedisChatMessageHistory({
+            sessionId: chatId,
+            config: {
+                url: "https://proven-swan-30163.upstash.io",
+                token: process.env.UPSTASH_TOKEN,
+            }
+        })
+    });
     return new ConversationChain({
         llm: model,
         memory: memory,
