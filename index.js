@@ -106,7 +106,7 @@ stream.on(CONSTANTS.STREAM.CHAT, async (message) => {
                     sendResponseMessage(response.response, message.chatId);
                 }
             } else {
-                sendResponseMessage("You are not Whitelisted!", message.chatId);
+                sendResponseMessage("You are not Whitelisted! Please contact @dasarimanoj / @coderkavyag / @nooberboy / @charan_madhu on discord to get whitelisted.", message.chatId);
             }
         } 
     } catch (error) {
