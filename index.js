@@ -17,7 +17,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const signer = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY);
 
 const pushBotInitializer = await PushAPI.initialize(signer, {
-    env: CONSTANTS.ENV.PROD,
+    env: CONSTANTS.ENV.DEV,
 });
 
 const stream = await pushBotInitializer.initStream(
