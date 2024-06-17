@@ -2,7 +2,6 @@ import restana from "restana";
 import { PushAPI, CONSTANTS } from '@pushprotocol/restapi';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
-import Groq from "groq-sdk";
 import { sepoliaRpcUrl, whitelistContractAddress } from "./helpers/Consts.js";
 import abi from "./contracts/whitelist/abi/abi.json" assert { type: "json" };
 import { BufferMemory } from "langchain/memory";
@@ -12,12 +11,10 @@ import { UpstashRedisChatMessageHistory } from "@langchain/community/stores/mess
 
 dotenv.config();
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const signer = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY);
 
 const pushBotInitializer = await PushAPI.initialize(signer, {
-    env: CONSTANTS.ENV.DEV,
+    env: CONSTANTS.ENV.STAGING,
 });
 
 const stream = await pushBotInitializer.initStream(
@@ -92,6 +89,7 @@ async function groqResponseMessage(request, chatId) {
 }
 
 stream.on(CONSTANTS.STREAM.CHAT, async (message) => {
+    console.log(message.meta)
     try {
         if (message.origin === "other" && (message.event === "chat.message" || message.event === "chat.request") && message.message.content) {
             const senderAddress = message.from.replace("eip155:", "");
