@@ -4,16 +4,14 @@ import { ethers } from 'ethers';
 import dotenv from 'dotenv';
 import { sepoliaRpcUrl, whitelistContractAddress } from "./helpers/Consts.js";
 import abi from "./contracts/whitelist/abi/abi.json" assert { type: "json" };
-import { BufferMemory } from "langchain/memory";
-import { ChatGroq } from "@langchain/groq";
-import { ConversationChain } from "langchain/chains";
-import { UpstashRedisChatMessageHistory } from "@langchain/community/stores/message/upstash_redis";
+import { BotResponseMessage, setModelForChatId, getModelForChatId } from "./commands/Bot.js";
+import { getAvailableModels, getCommandsList, getWhitelistedResponse, inaccurateRespose } from "./helpers/Responses.js";
 
 dotenv.config();
 
 const signer = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY);
 
-const pushBotInitializer = await PushAPI.initialize(signer, {
+export const pushBotInitializer = await PushAPI.initialize(signer, {
     env: CONSTANTS.ENV.STAGING,
 });
 
@@ -43,8 +41,7 @@ const wallet = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY, provider);
 const whitelistContract = new ethers.Contract(contractAddress, abi, wallet);
 
 async function checkWhitelisted(senderAddress) {
-    const whitelisted = await whitelistContract.isWhitelisted(senderAddress);
-    return whitelisted;
+    return await whitelistContract.isWhitelisted(senderAddress);
 }
 
 async function sendResponseMessage(message, recipient) {
@@ -54,61 +51,69 @@ async function sendResponseMessage(message, recipient) {
             content: message,
         });
         console.log("Response Sent");
-    } catch {
-        console.log("Response Sending failed");
+    } catch (error) {
+        console.log("Response Sending failed", error);
     }
 }
 
-const model = new ChatGroq({
-    model: "llama3-8b-8192",
-    temperature: 0,
-});
-
-function getConversationChainForChatId(chatId) {
-    const memory = new BufferMemory({
-        chatHistory: new UpstashRedisChatMessageHistory({
-            sessionId: chatId,
-            config: {
-                url: "https://proven-swan-30163.upstash.io",
-                token: process.env.UPSTASH_TOKEN,
-            }
-        })
-    });
-    return new ConversationChain({
-        llm: model,
-        memory: memory,
-    });
+async function handleBotCommand(request, chatId) {
+    const botResponse = await BotResponseMessage(request, chatId);
+    sendResponseMessage(`${botResponse.response} ${inaccurateRespose}`, chatId);
 }
 
-async function groqResponseMessage(request, chatId) {
-    const chain = getConversationChainForChatId(chatId);
-    const response = await chain.call({
-        input: request
-    });
-    return response;
+async function handleSetModelCommand(modelId, chatId) {
+    const response = await setModelForChatId(chatId, modelId);
+    sendResponseMessage(response, chatId);
+}
+
+async function handleGetModelCommand(chatId) {
+    const currentModel = await getModelForChatId(chatId);
+    sendResponseMessage(`Current Model: ${currentModel}`, chatId);
+}
+
+async function handleCommand(message) {
+    const content = message.message.content.trim();
+    const command = (content.split(" ")[0].toLowerCase() || "hi").trim();
+    const args = content.slice(command.length).trim();
+    const chatId = message.chatId;
+
+    switch (command) {
+        case "/bot":
+            await handleBotCommand(args, chatId);
+            break;
+        case "/setmodel":
+            await handleSetModelCommand(args, chatId);
+            break;
+        case "/model":
+            await handleGetModelCommand(chatId);
+            break;
+        case "/models":
+            sendResponseMessage(getAvailableModels, chatId);
+            break;
+        case "/list":
+            sendResponseMessage(getCommandsList, chatId);
+            break;
+    }
 }
 
 stream.on(CONSTANTS.STREAM.CHAT, async (message) => {
-    console.log(message.meta)
     try {
-        if (message.origin === "other" && (message.event === "chat.message" || message.event === "chat.request") && message.message.content) {
+        if (message.origin === "other" && ["chat.message", "chat.request"].includes(message.event) && message.message.content) {
             const senderAddress = message.from.replace("eip155:", "");
-            const isWhitelisted = await checkWhitelisted(senderAddress); 
+            const isWhitelisted = await checkWhitelisted(senderAddress);
+
             if (message.event === "chat.request") {
                 await pushBotInitializer.chat.accept(senderAddress);
             }
+
             if (isWhitelisted) {
-                if (message.message.content.startsWith("/bot")) {
-                    const request = message.message.content.replace("/bot", "");
-                    const response = await groqResponseMessage(request, message.chatId);
-                    sendResponseMessage(response.response, message.chatId);
-                }
+                await handleCommand(message);
             } else {
-                sendResponseMessage("You are not Whitelisted! Please contact @dasarimanoj / @coderkavyag / @nooberboy / @charan_madhu on discord to get whitelisted.", message.chatId);
+                sendResponseMessage(getWhitelistedResponse, message.chatId);
             }
-        } 
+        }
     } catch (error) {
-        console.error(error); 
+        console.error(error);
     }
 });
 
