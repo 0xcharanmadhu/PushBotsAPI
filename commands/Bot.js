@@ -46,7 +46,7 @@ export async function BotResponseMessage(request, chatId) {
 }
 
 export async function setModelForChatId(chatId, model) {
-    const validModels = ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"];
+    const validModels = ["llama3-8b-8192", "gemma-7b-it"];
     if(validModels.includes(model)){
         await redis.set(`model:${chatId}`, model);
         return `Model Set: ${model}`;
