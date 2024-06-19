@@ -1,4 +1,4 @@
-# pushbotsapi
+# PushSlash
 
 To install dependencies:
 
